@@ -1,1 +1,1 @@
-test at https://github.com/vimlesh1975/speechrecognition
+test at https://vimlesh1975.github.io/speechrecognition
