@@ -77,6 +77,9 @@ function App() {
   const [currentText, setcurrentText] = useState('')
   const [replace1, setReplace1] = useState(false);
   const [aiText, setAitext] = useState('');
+  const [aiQuestion, setAiQuestion] = useState('');
+  const [image1, setImage1] = useState([])
+
 
   const setTextfromMic = (replace) => {
 
@@ -93,7 +96,7 @@ function App() {
     }
   }
 
-  const sendToOpenAi = async () => {
+  const sendToOpenAi = async (val1) => {
     const requestOptions = {
       method: 'POST',
       headers: {
@@ -102,7 +105,7 @@ function App() {
       },
       body: JSON.stringify({
         "model": "text-davinci-003",
-        'prompt': transcript,
+        'prompt': val1,
         'temperature': 0.1,
         'max_tokens': 256,
         'top_p': 1,
@@ -114,7 +117,31 @@ function App() {
     fetch('https://api.openai.com/v1/completions', requestOptions)
       .then(response => response.json())
       .then(data => {
-        setAitext(val => `${transcript} ${data.choices[0].text} \n \n \n \n \n \n ${val} ` );
+        setAitext(val => `${data.choices[0].text} \n \n \n \n \n \n ${val} `);
+
+      }).catch(err => {
+        console.log(err);
+      });
+
+  }
+  const sendToOpenAiforImage = async (val1) => {
+    const requestOptions = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + String(process.env.REACT_APP_OPENAI_API_KEY)
+      },
+      body: JSON.stringify({
+        'prompt': val1,
+        'n': 1,
+        'size': "300x200",
+      })
+    };
+    fetch('https://api.openai.com/v1/images/generations', requestOptions)
+      .then(response => response.json())
+      .then(data => {
+        setImage1([...image1, data.data[0].url]);
+        console.log(data)
 
       }).catch(err => {
         console.log(err);
@@ -192,14 +219,20 @@ function App() {
 
           <span> Replace: </span> <input type="checkbox" checked={replace1} onChange={e => setReplace1(val => !val)} />
           <span> Continuous: </span> <input type="checkbox" checked={continuous1} onChange={() => setContinuous1(val => !val)} />
-          <button onClick={sendToOpenAi}>Send To open AI</button>
+          <button onClick={() => sendToOpenAi(transcript)}>Send To open AI</button>
 
-          <div> {transcript}</div>
+          <div>{transcript}</div>
         </div>
       </div>
       <div style={{ border: '1px solid red', width: '50%' }}>
         <h1>Open Ai question answer</h1>
-        <textarea value={aiText} onChange={e => setAitext(e.target.value)} style={{ width: '100%', height: '100%' }} ></textarea>
+
+        Type Here:<textarea value={aiQuestion} onChange={e => setAiQuestion(e.target.value)} style={{ width: '80%', height: 20 }} ></textarea>
+        <button onClick={() => sendToOpenAi(aiQuestion)}>Send To open AI</button>  <button onClick={() => sendToOpenAiforImage(aiQuestion)}>Create image</button>
+        <textarea value={aiText} onChange={e => setAitext(e.target.value)} style={{ width: '100%', height: '50%%' }} ></textarea>
+        {image1.map((val, i) => {
+         return <img width={300} height={200} key={i} src={val} alt='' />
+        })}
 
       </div>
     </div>
