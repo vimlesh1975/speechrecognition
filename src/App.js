@@ -72,12 +72,14 @@ const languages = [
 
 function App() {
   const { transcript, listening, resetTranscript } = useSpeechRecognition();
-  const [currentLanguage, setcurrentLanguage] = useState('mr-IN');
+  const [currentLanguage, setcurrentLanguage] = useState('en-US');
   const [continuous1, setContinuous1] = useState(true);
   const [currentText, setcurrentText] = useState('')
   const [replace1, setReplace1] = useState(false);
+  const [aiText, setAitext] = useState('');
 
   const setTextfromMic = (replace) => {
+
     if (replace) {
       setcurrentText(transcript);
     }
@@ -91,22 +93,39 @@ function App() {
     }
   }
 
-  return (
-    <div className="App">
-      <h1>Speech Recognition</h1>
-      <b>Languages:</b> <input style={{ width: 70 }} value={currentLanguage} onChange={e => {
-        setcurrentLanguage(e.target.value)
-        if (continuous1 && listening) {
-          SpeechRecognition.startListening({
-            continuous: continuous1,
-            language: e.target.value
-          });
-        }
-      }
+  const sendToOpenAi = async () => {
+    const requestOptions = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + String(process.env.REACT_APP_OPENAI_API_KEY)
+      },
+      body: JSON.stringify({
+        "model": "text-davinci-003",
+        'prompt': transcript,
+        'temperature': 0.1,
+        'max_tokens': 256,
+        'top_p': 1,
+        'frequency_penalty': 0,
+        'presence_penalty': 0.5,
+        'stop': ["\"\"\""],
+      })
+    };
+    fetch('https://api.openai.com/v1/completions', requestOptions)
+      .then(response => response.json())
+      .then(data => {
+        setAitext(val => `${transcript} ${data.choices[0].text} \n \n \n \n \n \n ${val} ` );
 
-      } />
-      <select style={{ width: 70 }} value={currentLanguage}
-        onChange={(e) => {
+      }).catch(err => {
+        console.log(err);
+      });
+
+  }
+  return (<div>
+    <div style={{ display: 'flex' }}>
+      <div className="App" style={{ width: '50%' }}>
+        <h1>Speech Recognition</h1>
+        <b>Languages:</b> <input style={{ width: 70 }} value={currentLanguage} onChange={e => {
           setcurrentLanguage(e.target.value)
           if (continuous1 && listening) {
             SpeechRecognition.startListening({
@@ -116,56 +135,75 @@ function App() {
           }
         }
 
-        }
-      >
-        {(languages.filter((value, index, self) => { return self.indexOf(value) === index })).map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-      <textarea value={currentText} onChange={e => setcurrentText(e.target.value)} style={{ width: '100%', height: 250 }} ></textarea>
+        } />
+        <select style={{ width: 70 }} value={currentLanguage}
+          onChange={(e) => {
+            setcurrentLanguage(e.target.value)
+            if (continuous1 && listening) {
+              SpeechRecognition.startListening({
+                continuous: continuous1,
+                language: e.target.value
+              });
+            }
+          }
 
-      <div style={{ border: '1px solid red' ,width: '100%', height: 250}}>
-        <span>Microphone: {listening ? "ON " : "OFF "}</span>
-        <button
-          onClick={() => {
-            SpeechRecognition.startListening({
-              continuous: continuous1,
-              language: currentLanguage
-            });
-            resetTranscript();
-          }}
+          }
         >
-          Start
-        </button>
-        {listening === false && transcript !== "" && (
+          {(languages.filter((value, index, self) => { return self.indexOf(value) === index })).map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+        <textarea value={currentText} onChange={e => setcurrentText(e.target.value)} style={{ width: '100%', height: 250 }} ></textarea>
+
+        <div style={{ border: '1px solid red', width: '100%', height: 250 }}>
+          <span>Microphone: {listening ? "ON " : "OFF "}</span>
           <button
             onClick={() => {
-              SpeechRecognition.stopListening();
-              setTextfromMic(replace1);
+              SpeechRecognition.startListening({
+                continuous: continuous1,
+                language: currentLanguage
+              });
               resetTranscript();
             }}
           >
-            Set
+            Start
           </button>
-        )}
-        {listening && continuous1 && <button
-          onClick={() => {
-            SpeechRecognition.stopListening();
-          }}
-        >
-          Stop
-        </button>
-        }
+          {listening === false && transcript !== "" && (
+            <button
+              onClick={() => {
+                SpeechRecognition.stopListening();
+                setTextfromMic(replace1);
+                resetTranscript();
+              }}
+            >
+              Set
+            </button>
+          )}
+          {listening && continuous1 && <button
+            onClick={() => {
+              SpeechRecognition.stopListening();
+            }}
+          >
+            Stop
+          </button>
+          }
 
-        <span> Replace: </span> <input type="checkbox" checked={replace1} onChange={e => setReplace1(val => !val)} />
-        <span> Continuous: </span> <input type="checkbox" checked={continuous1} onChange={() => setContinuous1(val => !val)} />
+          <span> Replace: </span> <input type="checkbox" checked={replace1} onChange={e => setReplace1(val => !val)} />
+          <span> Continuous: </span> <input type="checkbox" checked={continuous1} onChange={() => setContinuous1(val => !val)} />
+          <button onClick={sendToOpenAi}>Send To open AI</button>
 
-        <div> {transcript}</div>
+          <div> {transcript}</div>
+        </div>
+      </div>
+      <div style={{ border: '1px solid red', width: '50%' }}>
+        <h1>Open Ai question answer</h1>
+        <textarea value={aiText} onChange={e => setAitext(e.target.value)} style={{ width: '100%', height: '100%' }} ></textarea>
+
       </div>
     </div>
-  );
+  </div>);
 }
 
 export default App;
