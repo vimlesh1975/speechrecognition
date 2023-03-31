@@ -69,7 +69,14 @@ const languages = [
   "zh-TW",
   "bh-IN"
 ];
-
+const openaiAddress = () => {
+  if (window.location.origin === 'https://vimlesh1975.github.io') {
+    return 'https://octopus-app-gzws3.ondigitalocean.app/'
+  }
+  else {
+    return 'http://localhost:9000/'
+  }
+}
 function App() {
   const { transcript, listening, resetTranscript } = useSpeechRecognition();
   const [currentLanguage, setcurrentLanguage] = useState('en-US');
@@ -96,56 +103,52 @@ function App() {
     }
   }
 
-  const sendToOpenAi = async (val1) => {
-    const requestOptions = {
+  const sendToOpenAi = async (str) => {
+    const response = await fetch(openaiAddress() + 'openai', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + String(process.env.REACT_APP_OPENAI_API_KEY)
       },
       body: JSON.stringify({
-        "model": "text-davinci-003",
-        'prompt': val1,
-        'temperature': 0.1,
-        'max_tokens': 256,
-        'top_p': 1,
-        'frequency_penalty': 0,
-        'presence_penalty': 0.5,
-        'stop': ["\"\"\""],
+        prompt: str,
+        model: "text-davinci-003",
       })
-    };
-    fetch('https://api.openai.com/v1/completions', requestOptions)
-      .then(response => response.json())
-      .then(data => {
-        setAitext(val => `${data.choices[0].text} \n \n \n \n \n \n ${val} `);
+    })
 
-      }).catch(err => {
-        console.log(err);
-      });
+    if (response.ok) {
+      const data = await response.json();
+      // trims any trailing spaces/'\n' 
+      setAitext(data.bot.trim())
+
+    } else {
+      const err = await response.text()
+      // alert(err)
+      setAitext(err)
+      console.log(err)
+    }
 
   }
-  const sendToOpenAiforImage = async (val1) => {
-    const requestOptions = {
+  const sendToOpenAiforImage = async (str) => {
+    const response = await fetch(openaiAddress() + 'openaiimage', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + String(process.env.REACT_APP_OPENAI_API_KEY)
       },
       body: JSON.stringify({
-        'prompt': val1,
-        'n': 1,
-        'size': "300x200",
+        prompt: str,
       })
-    };
-    fetch('https://api.openai.com/v1/images/generations', requestOptions)
-      .then(response => response.json())
-      .then(data => {
-        setImage1([...image1, data.data[0].url]);
-        console.log(data)
+    })
 
-      }).catch(err => {
-        console.log(err);
-      });
+    if (response.ok) {
+      const data = await response.json();
+      setImage1([...image1, data.bot.trim()]);
+
+    } else {
+      const err = await response.text()
+      // alert(err)
+      setAitext(err)
+      console.log(err)
+    }
 
   }
   return (<div>
@@ -231,7 +234,7 @@ function App() {
         <button onClick={() => sendToOpenAi(aiQuestion)}>Send To open AI</button>  <button onClick={() => sendToOpenAiforImage(aiQuestion)}>Create image</button>
         <textarea value={aiText} onChange={e => setAitext(e.target.value)} style={{ width: '100%', height: '50%%' }} ></textarea>
         {image1.map((val, i) => {
-         return <img width={300} height={200} key={i} src={val} alt='' />
+          return <img width={300} height={200} key={i} src={val} alt='' />
         })}
 
       </div>
