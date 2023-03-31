@@ -223,6 +223,7 @@ function App() {
           <span> Replace: </span> <input type="checkbox" checked={replace1} onChange={e => setReplace1(val => !val)} />
           <span> Continuous: </span> <input type="checkbox" checked={continuous1} onChange={() => setContinuous1(val => !val)} />
           <button onClick={() => sendToOpenAi(transcript)}>Send To open AI</button>
+          <button onClick={() => sendToOpenAiforImage(transcript)}>Create image</button>
 
           <div>{transcript}</div>
         </div>
